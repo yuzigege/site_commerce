@@ -3,107 +3,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ticket Sync Pro - Saisie TTC</title>
+    <title>Ticket Admin - Saisie</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js" type="module"></script>
     <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js" type="module"></script>
     <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js" type="module"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap');
-
-        .ticket-receipt {
-            width: 53mm;
-            background: white;
-            padding: 4mm;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-            font-family: 'Courier Prime', monospace;
-            font-size: 10px;
-            color: black;
-            line-height: 1.2;
-            cursor: pointer;
-            margin: 0 auto;
-        }
-
-        .ticket-container {
-            display: flex;
-            justify-content: center;
-            background: #e2e8f0;
-            padding: 20px;
-            min-height: 500px;
-        }
-
-        @media print {
-            body * { visibility: hidden; }
-            #receipt-to-print, #receipt-to-print * { visibility: visible; }
-            #receipt-to-print { position: absolute; left: 0; top: 0; box-shadow: none; width: 53mm; }
-        }
-    </style>
 </head>
-<body class="bg-slate-100 min-h-screen">
+<body class="bg-slate-100 min-h-screen p-4">
 
-    <div id="app" class="max-w-4xl mx-auto p-4">
-        <!-- Barre de statut -->
-        <div id="sync-status" class="text-center text-xs mb-2 text-slate-500 italic">Connexion au cloud...</div>
+    <div class="max-w-2xl mx-auto">
+        <div id="sync-status" class="text-center text-xs mb-4 text-slate-500 italic">Initialisation...</div>
 
-        <!-- Navigation -->
-        <nav class="flex space-x-2 mb-6 bg-white p-1 rounded-xl shadow-sm border border-slate-200">
-            <button onclick="window.switchPage('config')" id="btn-config" class="flex-1 py-3 px-4 rounded-lg transition-all bg-blue-600 text-white font-bold shadow-md">
-                ⚙️ Configurer
-            </button>
-            <button onclick="window.switchPage('view')" id="btn-view" class="flex-1 py-3 px-4 rounded-lg transition-all text-slate-600 font-bold hover:bg-slate-50">
-                📄 Voir Ticket
-            </button>
-        </nav>
+        <h1 class="text-2xl font-black text-slate-800 mb-6 text-center">TICKET SYNC ADMIN</h1>
 
-        <!-- Page Configuration -->
-        <section id="page-config" class="space-y-6">
+        <div class="space-y-6">
+            <!-- Boutique -->
             <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                <h2 class="text-lg font-bold mb-4 flex items-center gap-2">
-                    <span class="bg-blue-100 p-2 rounded-lg text-blue-600">🏠</span> Boutique
-                </h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <input type="text" id="store-name" oninput="window.saveData()" placeholder="Nom de la boutique" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg outline-none">
-                    <input type="text" id="store-logo" oninput="window.saveData()" placeholder="URL Logo (https://...)" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg outline-none">
-                    <textarea id="store-address" oninput="window.saveData()" placeholder="Adresse / Tel" class="col-span-full w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg outline-none h-20"></textarea>
+                <h2 class="font-bold mb-4 flex items-center gap-2 text-blue-600">🏠 Boutique</h2>
+                <div class="grid gap-3">
+                    <input type="text" id="store-name" oninput="window.saveData()" placeholder="Nom du magasin" class="w-full p-2 border rounded-lg">
+                    <input type="text" id="store-logo" oninput="window.saveData()" placeholder="URL Logo" class="w-full p-2 border rounded-lg text-sm">
+                    <textarea id="store-address" oninput="window.saveData()" placeholder="Adresse & Tel" class="w-full p-2 border rounded-lg h-20 text-sm"></textarea>
                 </div>
             </div>
 
+            <!-- Commande -->
             <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                <h2 class="text-lg font-bold mb-4 flex items-center gap-2">
-                    <span class="bg-purple-100 p-2 rounded-lg text-purple-600">🎫</span> Commande
-                </h2>
-                <div class="grid grid-cols-2 gap-4">
-                    <input type="text" id="order-prefix" oninput="window.saveData()" placeholder="Préfixe" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg outline-none">
-                    <input type="number" id="order-num" oninput="window.saveData()" placeholder="Numéro" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg outline-none">
+                <h2 class="font-bold mb-4 flex items-center gap-2 text-purple-600">🎫 Commande</h2>
+                <div class="flex gap-2">
+                    <input type="text" id="order-prefix" oninput="window.saveData()" placeholder="Préfixe" class="w-1/3 p-2 border rounded-lg">
+                    <input type="number" id="order-num" oninput="window.saveData()" placeholder="N°" class="w-2/3 p-2 border rounded-lg">
                 </div>
             </div>
 
+            <!-- Articles -->
             <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                 <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-lg font-bold">🛒 Articles (Saisie TTC)</h2>
-                    <button onclick="window.addItem()" class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm hover:bg-green-700">
-                        + Ajouter
-                    </button>
+                    <h2 class="font-bold">🛒 Articles (TTC)</h2>
+                    <button onclick="window.addItem()" class="bg-green-600 text-white px-3 py-1 rounded-lg text-sm font-bold">+ Ajouter</button>
                 </div>
-                <div id="items-list" class="space-y-3"></div>
+                <div id="items-list" class="space-y-2"></div>
             </div>
-        </section>
 
-        <!-- Page Visualisation -->
-        <section id="page-view" class="hidden">
-            <div class="flex flex-col items-center gap-4 mb-6">
-                <button onclick="window.openPrintWindow()" class="bg-slate-800 text-white px-8 py-3 rounded-full font-bold shadow-lg hover:bg-black transition-colors">
-                    🚀 Imprimer (Site Web)
-                </button>
-                <p class="text-xs text-slate-500 italic text-center">Clique sur le bouton ou le ticket pour lancer l'impression thermique</p>
+            <div class="text-center pt-4">
+                <a href="view.html" target="_blank" class="inline-block bg-slate-800 text-white px-6 py-3 rounded-full font-bold shadow-lg hover:bg-black">
+                    👁️ Ouvrir l'Afficheur de Ticket
+                </a>
             </div>
-            
-            <div class="ticket-container">
-                <div id="receipt-to-print" class="ticket-receipt" onclick="window.openPrintWindow()">
-                    <!-- Contenu généré en JS -->
-                </div>
-            </div>
-        </section>
+        </div>
     </div>
 
     <script type="module">
@@ -111,25 +58,22 @@
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // CONFIGURATION FIREBASE
         const firebaseConfig = JSON.parse(__firebase_config);
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'ticket-app-unique';
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
         let state = {
-            storeName: "Ma Boutique",
-            storeLogo: "",
-            storeAddress: "123 Rue du Commerce",
-            prefix: "CMD-",
-            orderNumber: 1,
-            items: [{ id: Date.now(), name: "Café", priceTTC: 2.50, tva: "B" }]
+            storeName: "", storeLogo: "", storeAddress: "",
+            prefix: "CMD-", orderNumber: 1,
+            items: [{ id: Date.now(), name: "Article", priceTTC: 0, tva: "B" }]
         };
 
         let user = null;
-        let isUpdatingFromSync = false;
+        let isSyncing = false;
 
+        // Fonction d'initialisation de l'auth
         async function initAuth() {
             try {
                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
@@ -145,235 +89,88 @@
 
         onAuthStateChanged(auth, (u) => {
             user = u;
-            if (user) setupRealtimeSync();
+            if (user) {
+                // Chemin à 6 segments : artifacts / appId / public / data / config / main
+                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'config', 'main');
+                onSnapshot(docRef, (snap) => {
+                    if (snap.exists()) {
+                        isSyncing = true;
+                        state = snap.data();
+                        updateFields();
+                        renderItems();
+                        document.getElementById('sync-status').innerText = "☁️ Synchro active";
+                        isSyncing = false;
+                    }
+                }, (error) => {
+                    console.error("Snapshot error:", error);
+                    document.getElementById('sync-status').innerText = "❌ Erreur de lecture";
+                });
+            }
         });
 
-        function setupRealtimeSync() {
-            if (!user) return;
-            // Correction du chemin Firestore : artifacts/{appId}/public/data/{docId}
-            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'ticketConfig');
-            
-            onSnapshot(docRef, (snap) => {
-                if (snap.exists()) {
-                    isUpdatingFromSync = true;
-                    state = snap.data();
-                    updateUI();
-                    renderReceipt();
-                    document.getElementById('sync-status').innerText = "☁️ Synchronisé";
-                    isUpdatingFromSync = false;
-                } else {
-                    window.saveData();
-                }
-            }, (err) => {
-                console.error("Firestore error:", err);
-                document.getElementById('sync-status').innerText = "❌ Erreur de synchro";
+        function updateFields() {
+            document.getElementById('store-name').value = state.storeName || "";
+            document.getElementById('store-logo').value = state.storeLogo || "";
+            document.getElementById('store-address').value = state.storeAddress || "";
+            document.getElementById('order-prefix').value = state.prefix || "";
+            document.getElementById('order-num').value = state.orderNumber || 0;
+        }
+
+        function renderItems() {
+            const list = document.getElementById('items-list');
+            if (!list) return;
+            list.innerHTML = '';
+            state.items.forEach((item, i) => {
+                const row = document.createElement('div');
+                row.className = "flex gap-2 items-center bg-slate-50 p-2 rounded border";
+                row.innerHTML = `
+                    <input type="text" value="${item.name}" oninput="window.updateItem(${i}, 'name', this.value)" class="flex-1 p-1 text-sm border rounded">
+                    <input type="number" step="0.01" value="${item.priceTTC}" oninput="window.updateItem(${i}, 'priceTTC', parseFloat(this.value))" class="w-20 p-1 text-sm border rounded text-right">
+                    <select onchange="window.updateItem(${i}, 'tva', this.value)" class="p-1 text-xs border rounded">
+                        <option value="A" ${item.tva=='A'?'selected':''}>20%</option>
+                        <option value="B" ${item.tva=='B'?'selected':''}>10%</option>
+                    </select>
+                    <button onclick="window.deleteItem(${i})" class="text-red-500 px-1">✕</button>
+                `;
+                list.appendChild(row);
             });
         }
 
         window.saveData = async () => {
-            if (!user || isUpdatingFromSync) return;
-            
+            if (!user || isSyncing) return;
             state.storeName = document.getElementById('store-name').value;
             state.storeLogo = document.getElementById('store-logo').value;
             state.storeAddress = document.getElementById('store-address').value;
             state.prefix = document.getElementById('order-prefix').value;
             state.orderNumber = parseInt(document.getElementById('order-num').value) || 0;
             
-            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'ticketConfig');
+            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'config', 'main');
             try {
                 await setDoc(docRef, state);
-                renderReceipt();
             } catch (err) {
                 console.error("Save error:", err);
             }
         };
 
-        function updateUI() {
-            if (!document.getElementById('store-name')) return;
-            document.getElementById('store-name').value = state.storeName || "";
-            document.getElementById('store-logo').value = state.storeLogo || "";
-            document.getElementById('store-address').value = state.storeAddress || "";
-            document.getElementById('order-prefix').value = state.prefix || "";
-            document.getElementById('order-num').value = state.orderNumber || 0;
-            renderItemsList();
-        }
-
-        function renderItemsList() {
-            const container = document.getElementById('items-list');
-            if (!container) return;
-            container.innerHTML = '';
-            state.items.forEach((item, index) => {
-                const div = document.createElement('div');
-                div.className = "flex gap-2 items-center bg-slate-50 p-2 rounded-lg border";
-                div.innerHTML = `
-                    <input type="text" value="${item.name}" placeholder="Art." oninput="window.updateItem(${index}, 'name', this.value)" class="flex-1 p-2 border rounded-md text-sm">
-                    <div class="flex items-center">
-                        <input type="number" step="0.01" value="${item.priceTTC}" oninput="window.updateItem(${index}, 'priceTTC', parseFloat(this.value))" class="w-20 p-2 border rounded-md text-sm text-right font-bold">
-                        <span class="ml-1 text-[10px] text-blue-600 font-bold">TTC</span>
-                    </div>
-                    <select onchange="window.updateItem(${index}, 'tva', this.value)" class="p-2 border rounded-md text-xs bg-white">
-                        <option value="A" ${item.tva === 'A' ? 'selected' : ''}>A (20%)</option>
-                        <option value="B" ${item.tva === 'B' ? 'selected' : ''}>B (10%)</option>
-                        <option value="0" ${item.tva === '0' ? 'selected' : ''}>0%</option>
-                    </select>
-                    <button onclick="window.deleteItem(${index})" class="text-red-400 p-1">✕</button>
-                `;
-                container.appendChild(div);
-            });
-        }
-
-        window.addItem = () => {
-            state.items.push({ id: Date.now(), name: "", priceTTC: 0, tva: "A" });
-            window.saveData();
-            renderItemsList();
+        window.addItem = () => { 
+            state.items.push({id:Date.now(), name:"", priceTTC:0, tva:"A"}); 
+            window.saveData(); 
+            renderItems(); 
         };
 
-        window.deleteItem = (idx) => {
-            state.items.splice(idx, 1);
-            window.saveData();
-            renderItemsList();
+        window.deleteItem = (i) => { 
+            state.items.splice(i, 1); 
+            window.saveData(); 
+            renderItems(); 
         };
 
-        window.updateItem = (idx, field, val) => {
-            state.items[idx][field] = val;
-            window.saveData();
+        window.updateItem = (i, f, v) => { 
+            state.items[i][f] = v; 
+            window.saveData(); 
         };
 
-        window.switchPage = (page) => {
-            const pageConfig = document.getElementById('page-config');
-            const pageView = document.getElementById('page-view');
-            const btnConfig = document.getElementById('btn-config');
-            const btnView = document.getElementById('btn-view');
-
-            if (page === 'view') {
-                pageConfig.classList.add('hidden');
-                pageView.classList.remove('hidden');
-                btnConfig.className = "flex-1 py-3 px-4 rounded-lg text-slate-600 font-bold";
-                btnView.className = "flex-1 py-3 px-4 rounded-lg bg-blue-600 text-white font-bold shadow-md";
-                renderReceipt();
-            } else {
-                pageConfig.classList.remove('hidden');
-                pageView.classList.add('hidden');
-                btnConfig.className = "flex-1 py-3 px-4 rounded-lg bg-blue-600 text-white font-bold shadow-md";
-                btnView.className = "flex-1 py-3 px-4 rounded-lg text-slate-600 font-bold";
-            }
-        };
-
-        function renderReceipt() {
-            const container = document.getElementById('receipt-to-print');
-            if (!container) return;
-            
-            const tvaMap = { A: 20, B: 10, "0": 0 };
-            let totalTTC = 0;
-            let totalHT = 0;
-            let itemsHtml = '';
-
-            state.items.forEach(item => {
-                if (!item.name && (item.priceTTC === 0 || isNaN(item.priceTTC))) return;
-                
-                const rate = tvaMap[item.tva];
-                const priceTTC = parseFloat(item.priceTTC) || 0;
-                const ht = priceTTC / (1 + (rate / 100));
-                
-                totalTTC += priceTTC;
-                totalHT += ht;
-
-                itemsHtml += `
-                    <tr>
-                        <td class="py-1 uppercase text-[9px]">${item.name || '---'}</td>
-                        <td class="py-1 text-right font-bold">${priceTTC.toFixed(2)}</td>
-                        <td class="py-1 text-right text-[8px] pl-2">${item.tva}</td>
-                    </tr>
-                `;
-            });
-
-            const totalTVA = totalTTC - totalHT;
-
-            container.innerHTML = `
-                ${state.storeLogo ? `<div class="flex justify-center mb-2"><img src="${state.storeLogo}" class="max-w-[30mm] h-auto object-contain"></div>` : ''}
-                <div class="text-center font-bold text-sm uppercase mb-1">${state.storeName || "BOUTIQUE"}</div>
-                <div class="text-center text-[8px] mb-4 whitespace-pre-line">${state.storeAddress || ""}</div>
-                <div class="border-b border-black mb-2"></div>
-                <div class="flex justify-between mb-2">
-                    <span>${new Date().toLocaleDateString('fr-FR')}</span>
-                    <span class="font-bold">${state.prefix || ""}${state.orderNumber || 0}</span>
-                </div>
-                <table class="w-full mb-3">
-                    <tbody class="divide-y divide-dotted divide-black">${itemsHtml}</tbody>
-                </table>
-                <div class="border-t border-black pt-2 space-y-1">
-                    <div class="flex justify-between"><span>TOTAL HT</span><span>${totalHT.toFixed(2)} €</span></div>
-                    <div class="flex justify-between italic text-[9px]"><span>DONT TVA</span><span>${totalTVA.toFixed(2)} €</span></div>
-                    <div class="flex justify-between font-bold text-sm pt-2 border-t border-black">
-                        <span>TOTAL TTC</span>
-                        <span class="text-base">${totalTTC.toFixed(2)} €</span>
-                    </div>
-                </div>
-                <div class="mt-8 text-center text-[8px] uppercase tracking-widest pt-4 border-t border-slate-100">
-                    Merci de votre visite
-                </div>
-            `;
-        }
-
-        window.openPrintWindow = () => {
-            renderReceipt();
-            const ticketHtml = document.getElementById('receipt-to-print').innerHTML;
-            const printWindow = window.open('', '_blank');
-            if (!printWindow) return;
-            printWindow.document.write(`
-                <html>
-                <head>
-                    <title>Ticket - ${state.prefix}${state.orderNumber}</title>
-                    <style>
-                        @import url('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap');
-                        body { 
-                            margin: 0; 
-                            padding: 0; 
-                            display: flex; 
-                            justify-content: center; 
-                            font-family: 'Courier Prime', monospace; 
-                            background: white;
-                        }
-                        .ticket-receipt { 
-                            width: 53mm; 
-                            padding: 4mm; 
-                            color: black; 
-                            line-height: 1.2; 
-                            font-size: 10px; 
-                        }
-                        table { width: 100%; border-collapse: collapse; }
-                        .text-right { text-align: right; }
-                        .text-center { text-align: center; }
-                        .font-bold { font-weight: bold; }
-                        .uppercase { text-transform: uppercase; }
-                        .flex { display: flex; }
-                        .justify-between { justify-content: space-between; }
-                        .mb-2 { margin-bottom: 0.5rem; }
-                        .mb-4 { margin-bottom: 1rem; }
-                        .mt-8 { margin-top: 2rem; }
-                        .border-b { border-bottom: 1px solid black; }
-                        .border-t { border-top: 1px solid black; }
-                        img { max-width: 30mm; height: auto; display: block; margin: 0 auto; }
-                        .divide-y td { border-bottom: 1px dotted black; }
-                        .text-base { font-size: 12px; }
-                        .italic { font-style: italic; }
-                    </style>
-                </head>
-                <body onload="window.print();">
-                    <div class="ticket-receipt">
-                        ${ticketHtml}
-                    </div>
-                </body>
-                </html>
-            `);
-            printWindow.document.close();
-        };
-
-        // Initialisation
+        // Lancement
         initAuth();
-
-        // Export des fonctions pour les onclick globaux
-        window.renderReceipt = renderReceipt;
     </script>
 </body>
 </html>
