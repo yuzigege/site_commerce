@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Afficheur Ticket - Sync</title>
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js" type="module"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js" type="module"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js" type="module"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap');
+        
+        body { 
+            background: #1e293b; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            padding: 20px; 
+            font-family: 'Courier Prime', monospace; 
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .ticket { 
+            width: 53mm; 
+            background: white; 
+            padding: 4mm; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5); 
+            font-size: 10px; 
+            cursor: pointer; 
+            color: black;
+            line-height: 1.2;
+        }
+
+        .btn-print { 
+            margin-bottom: 20px; 
+            padding: 12px 24px; 
+            background: #10b981; 
+            color: white; 
+            border: none; 
+            border-radius: 50px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            transition: transform 0.1s;
+        }
+
+        .btn-print:active { transform: scale(0.95); }
+
+        #status-tag {
+            color: #94a3b8;
+            font-size: 10px;
+            margin-top: 10px;
+            font-style: italic;
+        }
+
+        @media print { 
+            .btn-print, #status-tag { display: none; } 
+            body { background: white; padding: 0; } 
+            .ticket { box-shadow: none; width: 53mm; margin: 0; } 
+        }
+
+        table { width: 100%; border-collapse: collapse; margin: 8px 0; }
+        .text-right { text-align: right; }
+        .font-bold { font-weight: bold; }
+        .flex-between { display: flex; justify-content: space-between; }
+    </style>
+</head>
+<body>
+
+    <button class="btn-print" onclick="window.print()">🖨️ IMPRIMER LE TICKET</button>
+
+    <div id="ticket" class="ticket" onclick="window.print()">
+        <center>Connexion au cloud...</center>
+    </div>
+
+    <div id="status-tag">En attente de synchronisation...</div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const firebaseConfig = JSON.parse(__firebase_config);
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+        async function initAuth() {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (err) {
+                console.error("Auth error:", err);
+            }
+        }
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                // Chemin à 6 segments identique à index.html
+                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'config', 'main');
+                
+                onSnapshot(docRef, (snap) => {
+                    if (snap.exists()) {
+                        render(snap.data());
+                        document.getElementById('status-tag').innerText = "✅ Ticket à jour (Synchronisé)";
+                    } else {
+                        document.getElementById('ticket').innerHTML = "<center>Aucune donnée trouvée.<br>Configurez le ticket dans l'admin.</center>";
+                    }
+                }, (error) => {
+                    console.error("Snapshot error:", error);
+                    document.getElementById('status-tag').innerText = "❌ Erreur de lecture Cloud";
+                });
+            }
+        });
+
+        function render(data) {
+            const tvaMap = { A: 20, B: 10, "0": 0 };
+            let ttc = 0, ht = 0;
+            let rows = '';
+
+            if (data.items && Array.isArray(data.items)) {
+                data.items.forEach(item => {
+                    if (!item.name && !item.priceTTC) return;
+                    const price = parseFloat(item.priceTTC) || 0;
+                    const rate = tvaMap[item.tva] || 0;
+                    ttc += price;
+                    ht += price / (1 + rate/100);
+                    rows += `
+                        <tr>
+                            <td style="text-transform:uppercase; padding: 2px 0;">${item.name || '---'}</td>
+                            <td class="text-right font-bold">${price.toFixed(2)}</td>
+                            <td class="text-right" style="font-size:8px; padding-left: 5px">${item.tva}</td>
+                        </tr>
+                    `;
+                });
+            }
+
+            const tvaAmount = ttc - ht;
+
+            document.getElementById('ticket').innerHTML = `
+                ${data.storeLogo ? `<center><img src="${data.storeLogo}" style="max-width:30mm; margin-bottom:10px"></center>` : ''}
+                <center>
+                    <div style="font-weight:bold; font-size:12px; text-transform:uppercase">${data.storeName || "MAGASIN"}</div>
+                    <div style="font-size:8px; white-space: pre-line; margin-top: 3px">${data.storeAddress || ""}</div>
+                </center>
+                
+                <div style="border-top: 1px dashed black; margin: 10px 0;"></div>
+                
+                <div class="flex-between">
+                    <span>${new Date().toLocaleDateString('fr-FR')}</span>
+                    <span class="font-bold">${data.prefix || ""}${data.orderNumber || 0}</span>
+                </div>
+
+                <table>
+                    <tbody style="border-bottom: 1px solid black">
+                        ${rows || '<tr><td colspan="3"><center>Pas d\'articles</center></td></tr>'}
+                    </tbody>
+                </table>
+
+                <div class="flex-between" style="margin-top: 5px">
+                    <span>TOTAL HT</span>
+                    <span>${ht.toFixed(2)} €</span>
+                </div>
+                <div class="flex-between" style="font-size:8px; font-style:italic">
+                    <span>DONT TVA</span>
+                    <span>${tvaAmount.toFixed(2)} €</span>
+                </div>
+                
+                <div class="flex-between font-bold" style="font-size:13px; margin-top: 8px; border-top: 1px solid black; pt: 5px">
+                    <span>TOTAL TTC</span>
+                    <span>${ttc.toFixed(2)} €</span>
+                </div>
+
+                <center style="margin-top:25px; font-size:8px; letter-spacing: 1px">
+                    MERCI DE VOTRE VISITE !<br>À BIENTÔT
+                </center>
+            `;
+        }
+
+        initAuth();
+    </script>
+</body>
+</html>
